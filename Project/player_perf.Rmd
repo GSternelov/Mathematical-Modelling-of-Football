@@ -1,0 +1,417 @@
+---
+title: "Player performance"
+author: "Gustav Sternelöv"
+output: pdf_document
+toc: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE)
+```
+
+```{r}
+library(jsonlite)
+library(data.table)
+library(ggplot2)
+library(viridis)
+library(ggrepel)
+```
+
+
+```{r}
+library(jsonlite)
+library(data.table)
+library(ggplot2)
+library(viridis)
+library(grid)
+library(gridExtra)
+library(ggrepel)
+library(xtable)
+```
+
+
+```{r}
+# pitch theme
+ggTheme = theme(panel.background = element_rect(fill = "white"),
+                panel.grid = element_blank(), axis.text = element_blank(), 
+                axis.ticks = element_blank(), axis.title = element_blank(),
+                plot.title = element_text(size = 10, margin = margin(b = 0.25)),
+                plot.subtitle = element_text(size = 8, margin = margin(t = 0, b = -0.5)),
+                legend.position = "top",
+                legend.margin = margin(t = -0.5, r = 0, b = 0, l = 0, unit = "cm"),
+                legend.text = element_text(margin = margin(t = -3), size = 6),
+                legend.title = element_text(size = 7.5, vjust = 1.5),
+                plot.caption = element_text(margin = margin(t = -3), size = 7.5))
+  ## define the circle function (from https://github.com/FCrSTATS/SBpitch/blob/master/R/pitchCreate.R)
+circleFun <- function(center = c(0,0),diameter = 1, npoints = 100){
+  r = diameter / 2
+  tt <- seq(0,2*pi,length.out = npoints)
+  xx <- center[1] + r * cos(tt)
+  yy <- center[2] + r * sin(tt)
+  return(data.frame(x = xx, y = yy))
+}
+center_circle <- circleFun(c(52.5,32.5),18.3,npoints = 100)
+  
+ggPitch = ggplot() +
+  xlim(c(-2, 107)) + ylim(c(66, -1)) +
+  annotate("rect", xmin = 0, xmax = 105, ymin = 0, ymax = 65, fill = "white", col = "black") + 
+  annotate("rect", xmin = 0, xmax = 16.5, ymin = 12.35, ymax = 52.65, fill = "white", col = "black") + 
+  annotate("rect", xmin = 105, xmax = 88.5, ymin = 12.35, ymax = 52.65, fill = "white", col = "black") + 
+  
+  annotate("rect", xmin = 0, xmax = 5.5, ymin = 23.5, ymax = 41.65, fill = "white", col = "black") + 
+  annotate("rect", xmin = 105, xmax = 99.5, ymin = 23.5, ymax = 41.65, fill = "white", col = "black") + 
+    
+  annotate("point", x = c(11, 52.5, 94), y = c(32.5, 32.5, 32.5), size = 1) + 
+  
+  geom_path(data=center_circle, aes(x=x,y=y)) +
+  
+  annotate("line", x = c(0, 0), y = c(28.84, 36.16), size = 1) + 
+  annotate("line", x = c(105, 105), y = c(28.84, 36.16), size = 1) + 
+    
+  annotate("segment", x = 52.5, xend = 52.5, y = 0, yend = 65) +
+  ggTheme
+```
+
+# Pass impact
+
+Combining pass impact and pass probability
+
+Pass probability: Probability that the pass will be accurate
+
+Pass impact: Impact of pass on probability to create a goal scoring opportunity
+
+The value of a pass is calculated by looking at the location of passes to shots.
+
+```{r, fig.height=2.25, fig.width=6}
+load("shotActionPass2.rda")
+
+ggPitch + 
+  geom_rect(data = shotActionPass2,
+            aes(xmin = startMinX, xmax = startMaxX,
+                ymin = startMinY, ymax = startMaxY,
+                fill = Prob)) +
+  scale_fill_viridis(alpha = 0.75, breaks = c(0, 0.025, 0.05), limits = c(0, 0.05)) +
+  labs(title = "Location of passes to shots") + 
+  theme(legend.position = "bottom")  +
+  guides(fill = guide_colourbar(barwidth = 8, barheight = 0.25, ticks = FALSE,
+                                frame.colour = "black", direction = "horizontal")) 
+```
+
+The expected value of a pass from a zone is calculated by looking at the probability for each zone given the location - times the value of the respective zone. 
+
+```{r, fig.height=2.25, fig.width=6}
+load("all_pass.rda")
+# Footed passes
+zoneX = 3
+zoneY = 2
+ggPitch + 
+  geom_rect(data = all_pass[GridX == zoneX & GridY == zoneY & passType %in% c("passFoot", "cross"), .N, .(GridX2, GridY2)],
+            aes(xmin = (GridX2-1) / 5 * 105, xmax = GridX2 / 5 * 105,
+                ymin = (GridY2-1) / 5 * 65, ymax = GridY2 / 5 * 65,
+                fill = N)) +
+  scale_fill_viridis(alpha = 0.75) + 
+  annotate("rect", xmin = all_pass[GridX == zoneX & GridY == zoneY, min(startMinX)], 
+           xmax = all_pass[GridX == zoneX & GridY == zoneY, max(startMaxX)],
+           ymin = all_pass[GridX == zoneX & GridY == zoneY, min(startMinY)],
+           ymax = all_pass[GridX == zoneX & GridY == zoneY, max(startMaxY)],
+           fill = "transparent", color = "red", size = 1) +
+  labs(title = "Location of footed passes from red zone")+
+  theme(legend.position = "bottom")  +
+  guides(fill = guide_colourbar(barwidth = 8, barheight = 0.25, ticks = FALSE,
+                                frame.colour = "black", direction = "horizontal")) 
+
+load("footLoc.rda")
+```
+
+So, the expected value of a pass from the red zone is `r footLoc[GridX == zoneX & GridY == zoneY, round(xPassVal, 3)]`  
+The value of making a vertical pass forward to the next zone is `r shotActionPass2[GridX == (zoneX+1) & GridY == zoneY, round(Prob, 3)]`  
+Hence, that pass would be `r shotActionPass2[GridX == (zoneX+1) & GridY == zoneY, round(Prob, 3)] - footLoc[GridX == zoneX & GridY == zoneY, round(xPassVal, 3)]` better/more valuable than expected from that position on the pitch
+
+Next plot, using my pass probability model to get the average probability of making a pass from one zone to all other zones. The method I have used for predicting the outcome of a pass utilizes three pieces of information from every pass. The location of the pass, the end location of the pass and the type of pass. From the first two pieces of information, it is possible to extract a lot of data about a pass. In my method, I use the location of a pass, the length of the pass and the distance from the center of the pitch before and after the pass together with the angle toward the goal and the angle toward the midpoint of the goal line. The last piece of information, pass type, consists of four categories, foot passes, head passes, hand passes and crosses. These features are used together to predict if a pass will be accurate or not.
+
+```{r, fig.height=2.25, fig.width=6}
+load("passProbZone.rda")
+
+zoneX = 3
+zoneY = 2
+ggPitch + 
+  geom_rect(data = passProbZone[GridX == zoneX & GridY == zoneY],
+            aes(xmin = MinX, xmax = MaxX,
+                ymin = MinY, ymax = MaxY,
+                fill = passProb)) +
+  scale_fill_viridis(alpha = 0.75, limits = c(0.3, 1)) + 
+  annotate("rect", xmin = passProbZone[GridX2 == zoneX & GridY2 == zoneY, min(MinX)], 
+           xmax = passProbZone[GridX2 == zoneX & GridY2 == zoneY, max(MaxX)],
+           ymin = passProbZone[GridX2 == zoneX & GridY2 == zoneY, min(MinY)],
+           ymax = passProbZone[GridX2== zoneX & GridY2 == zoneY, max(MaxY)],
+           fill = "transparent", color = "red", size = 1) +
+  labs(title = "Pass probability of footed passes from red zone")+
+  theme(legend.position = "bottom")  +
+  guides(fill = guide_colourbar(barwidth = 8, barheight = 0.25, ticks = FALSE,
+                                frame.colour = "black", direction = "horizontal")) 
+```
+
+So, each pass now has an expected  
+- Value, defined as the probability that the pass will lead to pass that assists a shot  
+-  Probability of being accurate
+
+The vertical pass mentioned above had an expected value if `r shotActionPass2[GridX == (zoneX+1) & GridY == zoneY, round(Prob, 3)] - footLoc[GridX == zoneX & GridY == zoneY, round(xPassVal, 3)]` above average. The expected pass probability for that pass is `r passProbZone[GridX == zoneX & GridY == zoneY & GridX2 == (zoneX+1) & GridY2 == zoneY, round(passProb, 3)]`.  
+Taking the pass value times the pass probability gives that the estimated impact of the pass is `r round((shotActionPass2[GridX == (zoneX+1) & GridY == zoneY, Prob] - footLoc[GridX == zoneX & GridY == zoneY, xPassVal]) * passProbZone[GridX == zoneX & GridY == zoneY & GridX2 == (zoneX+1) & GridY2 == zoneY, passProb], 3) * 100` %. 
+
+
+Uses the above calculations to calculate the total and average impact for each player, and comparing that against the expected impact. The plot below shows the difference of expected and actual impact against total impact.
+
+```{r, fig.height=2.5, fig.width=6}
+load("playerImpact.rda")
+
+ggplot(playerImpact, aes(x = impactDiff, y = aImpact, color = currentTeamId == 1612)) +
+  geom_point(size = 1) +
+  geom_text_repel(data = playerImpact[aImpact > quantile(aImpact, 0.95) |
+                                      abs(impactDiff) > quantile(abs(impactDiff), 0.975)],
+                  aes(label = lastName), size = 2, color = "grey78") +
+  scale_color_manual(values = c("grey58", "#C8102E"), name = NULL, labels = c("", "Liverpool\nplayers")) +
+  theme(panel.background = element_rect(fill = "grey30"), panel.grid = element_line(color = "grey38"),
+        plot.title = element_text(size = 10, margin = margin(b = 0.25)),
+        plot.subtitle = element_text(size = 8, margin = margin(t = 0, b = -0.5)),
+        legend.position = "right",
+        legend.text = element_text(margin = margin(t = -3), size = 6),
+        legend.title = element_text(size = 7.5, vjust = 1.5),
+        plot.caption = element_text(margin = margin(t = -3), size = 7.5))
+```
+
+The plot below shows the mean difference of expected and actual impact against mean impact.
+
+```{r, fig.height=2.5, fig.width=6}
+ggplot(playerImpact, aes(x = impactDiffAvg, y = aImpactAvg, color = currentTeamId == 1612)) + geom_point(size = 1) +
+  geom_text_repel(data = playerImpact[aImpactAvg > quantile(aImpactAvg, 0.95) |
+                                        abs(impactDiffAvg) > quantile(abs(impactDiffAvg), 0.975)],
+                  aes(label = lastName), size = 2, color = "grey78") +
+  scale_color_manual(values = c("grey58", "#C8102E"), name = NULL, labels = c("", "Liverpool\nplayers")) +
+  theme(panel.background = element_rect(fill = "grey30"), panel.grid = element_line(color = "grey38"),
+        plot.title = element_text(size = 10, margin = margin(b = 0.25)),
+        plot.subtitle = element_text(size = 8, margin = margin(t = 0, b = -0.5)),
+        legend.position = "right",
+        legend.text = element_text(margin = margin(t = -3), size = 6),
+        legend.title = element_text(size = 7.5, vjust = 1.5),
+        plot.caption = element_text(margin = margin(t = -3), size = 7.5))
+```
+
+The tables shows the top 10 for total pass impact and mean pass impact, respectively. 
+
+```{r, results='asis'}
+print(xtable(playerImpact[aImpactRank <= 10, .(Name = paste(firstName, lastName), Impact = aImpact, Passes = N)][order(-Impact)], caption = 'Sum of expected pass impact - top 10'), caption.placement = 'bottom', comment = FALSE, include.rownames=FALSE, digits = 1)
+```
+
+```{r, results='asis'}
+print(xtable(playerImpact[aImpactAvgRank <= 10, .(Name = paste(firstName, lastName), Impact = paste(round(aImpactAvg * 100, 2), "%"), Passes = N)][order(-Impact)], caption = 'Mean expected pass impact - top 10'), caption.placement = 'bottom', comment = FALSE, include.rownames=FALSE, digits = 3)
+```
+
+Continue with a brief analysis of the players in Liverpool.  
+Mohamed Salah is Liverpool's number one for mean pass impact and fourth in the league.  
+Jordan Henderson is Liverpool's number one for total pass impact and 17th in league.
+
+Looks at the zone from which they have the highest number of passes and compares the distribution to the average distribution. 
+
+```{r, fig.height=2.25, fig.width=6}
+load("salahPasses.rda")
+
+ggPitch + 
+  geom_rect(data = salahPasses,
+            aes(xmin = (GridX2-1) / 5 * 105, xmax = GridX2 / 5 * 105,
+                ymin = (GridY2-1) / 5 * 65, ymax = GridY2 / 5 * 65,
+                fill = zoneDiff)) +
+  scale_fill_gradient2(low = "#80435e", mid = "#c7c4b875", high = "#5e8043", 0, limits = salahPasses[, min(zoneDiff) * c(1, -1)],
+                       name = NULL, breaks = c(-0.1, 0, 0.1)) +
+  annotate("rect", xmin = all_pass[GridX == 4 & GridY == 4, min(startMinX)], 
+           xmax = all_pass[GridX == 4 & GridY == 4, max(startMaxX)],
+           ymin = all_pass[GridX == 4 & GridY == 4, min(startMinY)],
+           ymax = all_pass[GridX == 4 & GridY == 4, max(startMaxY)],
+           fill = "transparent", color = "red", size = 1) +
+  labs(title = "Location of footed passes from red zone", 
+       subtitle = "Mohamed Salah - Compared to average location of passes from same zone")+
+  theme(legend.position = "bottom")  +
+  guides(fill = guide_colourbar(barwidth = 8, barheight = 0.25, ticks = FALSE,
+                                frame.colour = "black", direction = "horizontal")) 
+```
+
+```{r, fig.height=2.25, fig.width=6}
+load("hendoPasses.rda")
+
+ggPitch + 
+  geom_rect(data = hendoPasses,
+            aes(xmin = (GridX2-1) / 5 * 105, xmax = GridX2 / 5 * 105,
+                ymin = (GridY2-1) / 5 * 65, ymax = GridY2 / 5 * 65,
+                fill = zoneDiff)) +
+  scale_fill_gradient2(low = "#80435e", mid = "#c7c4b875", high = "#5e8043", 0, limits = hendoPasses[, max(abs(zoneDiff)) * c(-1, 1)],
+                       name = NULL, breaks = c(-0.06, 0, 0.06)) +
+  annotate("rect", xmin = all_pass[GridX == 3 & GridY == 4, min(startMinX)], 
+           xmax = all_pass[GridX == 3 & GridY == 4, max(startMaxX)],
+           ymin = all_pass[GridX == 3 & GridY == 4, min(startMinY)],
+           ymax = all_pass[GridX == 3 & GridY == 4, max(startMaxY)],
+           fill = "transparent", color = "red", size = 1) +
+  labs(title = "Location of footed passes from red zone", 
+       subtitle = "Jordan Henderson - Compared to average location of passes from same zone")+
+  theme(legend.position = "bottom") +
+  guides(fill = guide_colourbar(barwidth = 8, barheight = 0.25, ticks = FALSE,
+                                frame.colour = "black", direction = "horizontal")) 
+```
+
+
+Salah is good - keeps the ball in valuable zones  
+Henderson often plays the ball out the right or to the left centre back, compared to the average distribution n that zone.  
+Might think that Liverpool could use some more creativity from midfield
+
+Adding Granit Xhaka as comparison to Henderson. Plays the ball forward more than average and to valuable zones. 
+
+```{r, fig.height=2.25, fig.width=6}
+load("xhakaPasses.rda")
+
+ggPitch + 
+  geom_rect(data = xhakaPasses,
+            aes(xmin = (GridX2-1) / 5 * 105, xmax = GridX2 / 5 * 105,
+                ymin = (GridY2-1) / 5 * 65, ymax = GridY2 / 5 * 65,
+                fill = zoneDiff)) +
+  scale_fill_gradient2(low = "#80435e", mid = "#c7c4b875", high = "#5e8043", 0,
+                       limits = xhakaPasses[, max(abs(zoneDiff)) * c(-1, 1)],
+                       name = NULL, breaks = c(-0.04, 0, 0.04)) +
+  annotate("rect", xmin = all_pass[GridX == 3 & GridY == 3, min(startMinX)], 
+           xmax = all_pass[GridX == 3 & GridY == 3, max(startMaxX)],
+           ymin = all_pass[GridX == 3 & GridY == 3, min(startMinY)],
+           ymax = all_pass[GridX == 3 & GridY == 3, max(startMaxY)],
+           fill = "transparent", color = "red", size = 1) +
+  labs(title = "Location of footed passes from red zone", 
+       subtitle = "Granit Xhaka - Compared to average location of passes from same zone")+
+  theme(legend.position = "bottom") +
+  guides(fill = guide_colourbar(barwidth = 8, barheight = 0.25, ticks = FALSE,
+                                frame.colour = "black", direction = "horizontal")) 
+```
+
+
+# Expected goals
+
+```{r, fig.height=2.25, fig.width=6}
+load("xG_testData.rda")
+
+ggPitch + 
+  geom_point(data = testData, aes(x = x1, y = y1, color = xG), size = 2) +
+  scale_color_viridis(alpha = 0.3, direction = -1, option = "B", limits = c(0.05, 1), na.value = "transparent") +
+  labs(title = "xG model probabilities. Cut-off at 5 %") + 
+  ggTheme + theme(legend.position = "bottom") +
+  guides(color = guide_colourbar(barwidth = 8, barheight = 0.25, ticks = FALSE,
+                                frame.colour = "black", direction = "horizontal")) 
+```
+
+
+
+```{r, fig.height=2.5, fig.width=6}
+load("player_xG.rda")
+
+ggplot(player_xG, aes(x = xG, y = G, color = currentTeamId == 1612)) +
+  geom_smooth(se = FALSE, method = "lm", formula = y ~ x, aes(group = 1), color = "grey62") + 
+  geom_point() +
+  geom_text_repel(data = player_xG[abs(xGdiff) > quantile(abs(xGdiff), 0.9) | G > quantile(G, 0.95)], 
+                  aes(label = shortName), size = 2, color = "grey78") +
+  scale_color_manual(values = c("grey58", "#C8102E"), name = NULL, labels = c("", "Liverpool\nplayers")) +
+  theme(panel.background = element_rect(fill = "grey30"), panel.grid = element_line(color = "grey38"),
+        plot.title = element_text(size = 10, margin = margin(b = 0.25)),
+        plot.subtitle = element_text(size = 8, margin = margin(t = 0, b = -0.5)),
+        legend.position = "right",
+        legend.text = element_text(margin = margin(t = -3), size = 6),
+        legend.title = element_text(size = 7.5, vjust = 1.5),
+        plot.caption = element_text(margin = margin(t = -3), size = 7.5)) +
+  labs(title = "xG against Goals")
+```
+
+
+```{r, fig.height=2.5, fig.width=6}
+load("player_xG.rda")
+
+ggplot(player_xG, aes(x = xG_shot, y = G_shot, color = currentTeamId == 1612)) +
+  geom_smooth(se = FALSE, method = "lm", formula = y ~ x, aes(group = 1), color = "grey62") + 
+  geom_point() +
+  geom_text_repel(data = player_xG[xG_shot > quantile(xG_shot, 0.95) |
+                                     xG_shot < quantile(xG_shot, 0.05) | 
+                                     G_shot > quantile(G_shot, 0.95) |
+                                     G_shot < quantile(G_shot, 0.1)], 
+                  aes(label = shortName), size = 2, color = "grey78") +
+  scale_color_manual(values = c("grey58", "#C8102E"), name = NULL, labels = c("", "Liverpool\nplayers")) +
+  theme(panel.background = element_rect(fill = "grey30"), panel.grid = element_line(color = "grey38"),
+        plot.title = element_text(size = 10, margin = margin(b = 0.25)),
+        plot.subtitle = element_text(size = 8, margin = margin(t = 0, b = -0.5)),
+        legend.position = "right",
+        legend.text = element_text(margin = margin(t = -3), size = 6),
+        legend.title = element_text(size = 7.5, vjust = 1.5),
+        plot.caption = element_text(margin = margin(t = -3), size = 7.5)) +
+  labs(title = "xG/shot against Goals/shot")
+```
+
+
+
+# Expected assists
+
+```{r, fig.height=2.5, fig.width=6}
+load("player_xA.rda")
+
+ggplot(player_xA, aes(x = xA, y = A, color = currentTeamId == 1612)) +
+  geom_smooth(se = FALSE, method = "lm", formula = y ~ x, aes(group = 1), color = "grey62") + 
+  geom_point() +
+  geom_text_repel(data = player_xA[abs(xAdiff) > quantile(abs(xAdiff), 0.9) | A > quantile(A, 0.95)], 
+                  aes(label = shortName), size = 2, color = "grey78") +
+  scale_color_manual(values = c("grey58", "#C8102E"), name = NULL, labels = c("", "Liverpool\nplayers")) +
+  theme(panel.background = element_rect(fill = "grey30"), panel.grid = element_line(color = "grey38"),
+        plot.title = element_text(size = 10, margin = margin(b = 0.25)),
+        plot.subtitle = element_text(size = 8, margin = margin(t = 0, b = -0.5)),
+        legend.position = "right",
+        legend.text = element_text(margin = margin(t = -3), size = 6),
+        legend.title = element_text(size = 7.5, vjust = 1.5),
+        plot.caption = element_text(margin = margin(t = -3), size = 7.5)) +
+  labs(title = "xA against assists")
+
+```
+
+
+```{r, fig.height=2.5, fig.width=6}
+ggplot(player_xA, aes(x = xA_pass, y = A_pass, color = currentTeamId == 1612)) +
+  geom_smooth(se = FALSE, method = "lm", formula = y ~ x, aes(group = 1), color = "grey62") + 
+  geom_point() +
+  geom_text_repel(data = player_xA[xA_pass > quantile(xA_pass, 0.95) |
+                                     xA_pass < quantile(xA_pass, 0.05) | 
+                                     A_pass > quantile(A_pass, 0.95) |
+                                     A_pass < quantile(A_pass, 0.1)], 
+                  aes(label = shortName), size = 2, color = "grey78") +
+  scale_color_manual(values = c("grey58", "#C8102E"), name = NULL, labels = c("", "Liverpool\nplayers")) +
+  theme(panel.background = element_rect(fill = "grey30"), panel.grid = element_line(color = "grey38"),
+        plot.title = element_text(size = 10, margin = margin(b = 0.25)),
+        plot.subtitle = element_text(size = 8, margin = margin(t = 0, b = -0.5)),
+        legend.position = "right",
+        legend.text = element_text(margin = margin(t = -3), size = 6),
+        legend.title = element_text(size = 7.5, vjust = 1.5),
+        plot.caption = element_text(margin = margin(t = -3), size = 7.5)) +
+  labs(title = "xA/Pass against Assists/Pass")
+```
+
+
+Creativity from the front three - Mané, Firmino and Salah  
+Mentioned earlier that Liverpool's midfield might lack a bit of creativity  
+Seem like creativity is a less important piece of contribution for a midfielder in Liverpool compared to the average team
+
+
+# Radars
+
+
+
+# To do
+
+
+Do a short report with Radars, using passing model and xG model
+
+Would like to make some of the values per 90, i.e. get number of minutes played for each player and divide the value by the number of 90s played. For example, xG per 90 instead of total xG and shots per 90 instead of total number of shots
+
+
+Clean up code a bit
+Add radars
+Upload to Github
+
+
+
+

@@ -1,0 +1,200 @@
+---
+title: "Evaluating passes - Mathematical Modelling of Football"
+author: "Gustav Sternelöv - 2020-09-22"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE)
+```
+
+```{r}
+library(jsonlite)
+library(data.table)
+library(ggplot2)
+library(viridis)
+library(grid)
+library(gridExtra)
+library(ggrepel)
+library(xtable)
+```
+
+
+```{r}
+# pitch theme
+ggTheme = theme(panel.background = element_rect(fill = "white"),
+                panel.grid = element_blank(), axis.text = element_blank(), 
+                axis.ticks = element_blank(), axis.title = element_blank(),
+                plot.title = element_text(size = 10, margin = margin(b = 0.25)),
+                plot.subtitle = element_text(size = 8, margin = margin(t = 0, b = -0.5)),
+                legend.position = "top",
+                legend.margin = margin(t = 0, r = 0, b = -0.5, l = 0, unit = "cm"),
+                legend.text = element_text(margin = margin(t = -3), size = 6),
+                legend.title = element_text(size = 7.5, vjust = 1.5),
+                plot.caption = element_text(margin = margin(t = -3), size = 7.5))
+  ## define the circle function (from https://github.com/FCrSTATS/SBpitch/blob/master/R/pitchCreate.R)
+circleFun <- function(center = c(0,0),diameter = 1, npoints = 100){
+  r = diameter / 2
+  tt <- seq(0,2*pi,length.out = npoints)
+  xx <- center[1] + r * cos(tt)
+  yy <- center[2] + r * sin(tt)
+  return(data.frame(x = xx, y = yy))
+}
+center_circle <- circleFun(c(52.5,32.5),18.3,npoints = 100)
+  
+ggPitch = ggplot() +
+  xlim(c(-2, 107)) + ylim(c(66, -1)) +
+  annotate("rect", xmin = 0, xmax = 105, ymin = 0, ymax = 65, fill = "white", col = "black") + 
+  annotate("rect", xmin = 0, xmax = 16.5, ymin = 12.35, ymax = 52.65, fill = "white", col = "black") + 
+  annotate("rect", xmin = 105, xmax = 88.5, ymin = 12.35, ymax = 52.65, fill = "white", col = "black") + 
+  
+  annotate("rect", xmin = 0, xmax = 5.5, ymin = 23.5, ymax = 41.65, fill = "white", col = "black") + 
+  annotate("rect", xmin = 105, xmax = 99.5, ymin = 23.5, ymax = 41.65, fill = "white", col = "black") + 
+    
+  annotate("point", x = c(11, 52.5, 94), y = c(32.5, 32.5, 32.5), size = 1) + 
+  
+  geom_path(data=center_circle, aes(x=x,y=y)) +
+  
+  annotate("line", x = c(0, 0), y = c(28.84, 36.16), size = 1) + 
+  annotate("line", x = c(105, 105), y = c(28.84, 36.16), size = 1) + 
+    
+  annotate("segment", x = 52.5, xend = 52.5, y = 0, yend = 65) +
+  ggTheme
+```
+
+
+# Pass evaluation method
+
+In this text I will present my method for moving beyond pass success rate to evaluate passing ability. I will also use my method to rank players according to their estimated passing ability and willingness to make difficult but valuable passes high up the pitch. Given this ranking, players will be selected for a further analysis of their passing.  
+
+The method I have used for predicting the outcome of a pass utilizes three pieces of information from every pass. The location of the pass, the end location of the pass and the type of pass. From the first two pieces of information, it is possible to extract a lot of data about a pass. In my method, I use the location of a pass, the length of the pass and the distance from the center of the pitch before and after the pass together with the angle toward the goal and the angle toward the midpoint of the goal line. The last piece of information, pass type, consists of four categories, foot passes, head passes, hand passes and crosses. These features are used together to predict if a pass will be accurate or not.
+
+As can be seen in figure 1 and 2, my method for pass evaluation has some evident strengths and weaknesses. Looking at figure 1, the model seem to use factors like location of pass, end location of pass, angle and length of pass in a sensible way. Compared to plain success rate, the inclusion of these parameters contributes to a significant improvement when evaluating passes. 
+
+Figure 2 shows a mixture of different passes with respect to location, length and type. I find the estimated probabilities for these passes to be rather reasonable. However, there is one pass in figure 2 that I think shows a weakness of the model. The vertical footed pass made from a central position close to the center circle would probably have been a difficult pass in many cases since it would have had to pass through at least one defensive line in the opposition team. Since the positioning of the defensive team not is included in my method, it do not take this eventual scenario into account when making predictions for a pass. 
+
+```{r, fig.height=2.25, fig.width=7}
+load("passModel_examples.rda")
+p1 = ggPitch +
+  geom_segment(data = predData[group == 1], aes(x = x1, xend = x2, y = y1, yend = y2),
+               arrow = arrow(length = unit(0.03, "npc"))) +
+  geom_label(data = predData[group == 1], aes(x = x2, y = y2, label = round(passProb, 2)), nudge_y = 4, size = 2) +
+  annotate("label", x = 50, y = 52, label = "Direction of play", size = 2) +
+  annotate("segment", x = 30, xend = 80, y = 57, yend = 57,
+           arrow = arrow(length = unit(0.03, "npc"))) +
+  labs(title = "How pass probability changes given length\nand direction",
+       subtitle = "Footed passes only",
+       caption = "Figure 1")
+
+p2 = ggPitch +
+  geom_segment(data = predData[group == 2], aes(x = x1, xend = x2, y = y1, yend = y2),
+               arrow = arrow(length = unit(0.03, "npc"))) +
+  geom_label_repel(data = predData[group == 2],
+             aes(x = x2, y = y2, label = paste(passType, "\n", round(passProb, 2))), size = 2, nudge_y = 6) +
+  labs(title = "Pass probability given different combinations of\nlocation, pass length and pass type", 
+       subtitle = "",
+       caption = "Figure 2")
+
+grid.arrange(p1, p2, nrow = 1)
+```
+
+
+  
+# Ranking players
+
+To rank the passing ability of players I have looked at the completion rate of difficult passes with an end location in the final third. It can both be passes made inside the final third and passes made into the final third. A difficult pass is defined as a pass with an estimated probability lower than the median probability of all passes. 
+
+I created this definition of a hard pass since I think there is a problem to just look at difficult passes and the ability to complete these passes. A difficult pass, i.e. a pass with a low probability to be accurate, is not necessarily a good pass to make. Conversely, a pass with a low probability might be a result of poor decision making. Therefore, I have chosen to look at difficult passes in the final third and to the final third. The table below shows the top 5 players according to my criteria of passing skill in La Liga season 2017/18, 
+
+```{r, results='asis'}
+load("selPlayer.rda")
+selPlayer = selPlayer[1:5, .(Name = name, "Mean pass prob." = predProb, "Success rate" = meanCompl, "Mean hard pass prob." = hardPassesProb, "Hard passes success rate" = meanComplHardPasses)]
+print(xtable(selPlayer, caption = 'Pass ability ranking - top 5'), caption.placement = 'bottom', comment = FALSE, include.rownames=FALSE, digits = 1)
+```
+
+The players in the top 5 are almost entirely well-known central midfielders that plays for either Barcelona or Real Madrid. The only exception is Stanislav Lobotka who during 2017/18 season played for Celta Vigo, but now plays for Napoli in Serie A. I have chosen to make a deeper analysis of Lobotka's passing and to compare him against the number one passer according to my ranking, Real Madrid's playmaker Toni Kroos. 
+
+Figure 3 and 4 visualizes how Lobotka and Kroos distributes the ball. Kroos distributes the ball a lot both from deep but also in more offensive zones on the pitch. It is visible that Kroos often has played to the left in three-man midfield as most of his passing is in the left central zone. Lobotka's passes are located deeper and more around the central areas of the pitch. He cover most of the defensive and central midfield zones but has less passes than Kroos in offensive zones. 
+
+```{r, fig.height=2.2, fig.width=7}
+load("kroos_summary.rda")
+load("lobotka_summary.rda")
+
+p1 = ggPitch + 
+  geom_rect(data = kroos_summary, aes(xmin = startMinX, xmax = startMaxX, ymin = startMinY, ymax = startMaxY),
+            fill = "transparent", color = "seagreen", linetype = "dotted") + 
+  geom_segment(data = kroos_summary,
+               aes(x = (startMinX+startMaxX)/2, xend = avgEndX_n, y = (startMinY+startMaxY)/2, yend = avgEndY_n, color = N),
+               arrow = arrow(length = unit(0.02, "npc")), size = 1) + 
+  scale_size(range = c(0.15, 1.5), name = NULL) +
+  scale_color_viridis(option = "B", direction = -1, end = 0.8, name = "Number of\npasses") +
+  labs(title = "Toni Kroos pass distribution", subtitle = "Arrow length is normalized",
+       caption = "Figure 3") +
+  guides(color = guide_colourbar(barwidth = 4, barheight = 0.25, ticks = FALSE,
+                                frame.colour = "black", direction = "horizontal")) +
+    theme(legend.position = c(0.42, 0.05)) 
+
+p2 = ggPitch + 
+  geom_rect(data = lobotka_summary, aes(xmin = startMinX, xmax = startMaxX, ymin = startMinY, ymax = startMaxY),
+            fill = "transparent", color = "seagreen", linetype = "dotted") + 
+  geom_segment(data = lobotka_summary,
+               aes(x = (startMinX+startMaxX)/2, xend = avgEndX_n, y = (startMinY+startMaxY)/2,
+                   yend = avgEndY_n, color = N),
+               arrow = arrow(length = unit(0.02, "npc")), size = 1) + 
+  scale_size(range = c(0.15, 1.5), name = NULL) +
+  scale_color_viridis(option = "B", direction = -1, end = 0.8, name = "Number of\npasses") +
+  labs(title = "Stanislav Lobotka pass distribution", subtitle = "Arrow length is normalized",
+       caption = "Figure 4") +
+  guides(color = guide_colourbar(barwidth = 4, barheight = 0.25, ticks = FALSE,
+                                frame.colour = "black", direction = "horizontal")) +
+    theme(legend.position = c(0.42, 0.05)) 
+
+grid.arrange(p1, p2, nrow = 1)
+```
+
+
+Figure 5 and 6 are the same kind of plots as the ones above, but they only show the distribution for the passes that met the definition for a difficult pass. Kroos' passes are mainly located to the left of the center circle and the left half-space, and are directed straight forward or to the center of the pitch. Lobotka has a lower amount of difficult passes but do also succeed to play passes from the half-spaces and central attacking zone toward the goal. It is impressive how especially Kroos, but also Lobotka, are able to find space and execute passes forward in so advanced positions on the pitch.  
+
+```{r, fig.height=2.2, fig.width=7}
+load("kroos_ft.rda")
+load("lobotka_ft.rda")
+
+  # Max number of passes, used for color scale in plots
+maxN = max(c(kroos_ft[, max(N)], lobotka_ft[, max(N)]))
+
+p1 = ggPitch + 
+  geom_rect(data = kroos_ft, aes(xmin = startMinX, xmax = startMaxX, ymin = startMinY, ymax = startMaxY),
+            fill = "transparent", color = "seagreen", linetype = "dotted") + 
+  geom_segment(data = kroos_ft,
+               aes(x = (startMinX+startMaxX)/2, xend = avgEndX_n, y = (startMinY+startMaxY)/2, yend = avgEndY_n, color = N),
+               arrow = arrow(length = unit(0.02, "npc")), size = 1) + 
+  scale_size(range = c(0.15, 1.5), name = NULL) +
+  scale_color_viridis(option = "B", direction = -1, end = 0.8, name = "Number of\npasses") +
+  labs(title = "Toni Kroos - difficult passes", subtitle = "Arrow length is normalized",
+       caption = "Figure 5") +
+  guides(color = guide_colourbar(barwidth = 4, barheight = 0.25, ticks = FALSE,
+                                frame.colour = "black", direction = "horizontal")) +
+    theme(legend.position = c(0.42, 0.05)) 
+
+p2 = ggPitch + 
+  geom_rect(data = lobotka_ft, aes(xmin = startMinX, xmax = startMaxX, ymin = startMinY, ymax = startMaxY),
+            fill = "transparent", color = "seagreen", linetype = "dotted") + 
+  geom_segment(data = lobotka_ft,
+               aes(x = (startMinX+startMaxX)/2, xend = avgEndX_n, y = (startMinY+startMaxY)/2,
+                   yend = avgEndY_n, color = N),
+               arrow = arrow(length = unit(0.02, "npc")), size = 1) + 
+  scale_size(range = c(0.15, 1.5), name = NULL) +
+  scale_color_viridis(option = "B", direction = -1, end = 0.8, name = "Number of\npasses",
+                      limits = c(6, maxN)) +
+  labs(title = "Stanislav Lobotka - difficult passes", subtitle = "Arrow length is normalized",
+       caption = "Figure 6") +
+  guides(color = guide_colourbar(barwidth = 4, barheight = 0.25, ticks = FALSE,
+                                frame.colour = "black", direction = "horizontal")) +
+    theme(legend.position = c(0.42, 0.05)) 
+
+grid.arrange(p1, p2, nrow = 1)
+```
+
+
+
+
