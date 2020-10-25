@@ -213,7 +213,7 @@ salah = ggPitch +
             aes(xmin = (GridX2-1) / 5 * 105, xmax = GridX2 / 5 * 105,
                 ymin = (GridY2-1) / 5 * 65, ymax = GridY2 / 5 * 65,
                 fill = zoneDiff)) +
-  scale_fill_gradient2(low = "#80435e", mid = "#c7c4b875", high = "#5e8043", 0, limits = salahPasses[, min(zoneDiff) * c(1, -1)],
+  scale_fill_gradient2(low = "#80435e", mid = "#c7c4b865", high = "#5e8043", 0, limits = salahPasses[, min(zoneDiff) * c(1, -1)],
                        name = NULL, breaks = c(-0.1, 0, 0.1)) +
   annotate("rect", xmin = all_pass[GridX == 4 & GridY == 4, min(startMinX)], 
            xmax = all_pass[GridX == 4 & GridY == 4, max(startMaxX)],
@@ -232,7 +232,7 @@ bobby = ggPitch +
             aes(xmin = (GridX2-1) / 5 * 105, xmax = GridX2 / 5 * 105,
                 ymin = (GridY2-1) / 5 * 65, ymax = GridY2 / 5 * 65,
                 fill = zoneDiff)) +
-  scale_fill_gradient2(low = "#80435e", mid = "#c7c4b875", high = "#5e8043", 0, limits = salahPasses[, min(zoneDiff) * c(1, -1)],
+  scale_fill_gradient2(low = "#80435e", mid = "#c7c4b865", high = "#5e8043", 0, limits = salahPasses[, min(zoneDiff) * c(1, -1)],
                        name = NULL, breaks = c(-0.1, 0, 0.1)) +
   annotate("rect", xmin = all_pass[GridX == 4 & GridY == 4, min(startMinX)], 
            xmax = all_pass[GridX == 4 & GridY == 4, max(startMaxX)],
@@ -258,7 +258,7 @@ gini = ggPitch +
             aes(xmin = (GridX2-1) / 5 * 105, xmax = GridX2 / 5 * 105,
                 ymin = (GridY2-1) / 5 * 65, ymax = GridY2 / 5 * 65,
                 fill = zoneDiff)) +
-  scale_fill_gradient2(low = "#80435e", mid = "#c7c4b875", high = "#5e8043", 0, limits = giniPasses[, min(zoneDiff) * c(1, -1)],
+  scale_fill_gradient2(low = "#80435e", mid = "#c7c4b865", high = "#5e8043", 0, limits = giniPasses[, min(zoneDiff) * c(1, -1)],
                        name = NULL, breaks = c(-0.08, 0, 0.08)) +
   annotate("rect", xmin = all_pass[GridX ==3 & GridY == 2, min(startMinX)], 
            xmax = all_pass[GridX == 3 & GridY == 2, max(startMaxX)],
@@ -275,7 +275,7 @@ milner = ggPitch +
             aes(xmin = (GridX2-1) / 5 * 105, xmax = GridX2 / 5 * 105,
                 ymin = (GridY2-1) / 5 * 65, ymax = GridY2 / 5 * 65,
                 fill = zoneDiff)) +
-  scale_fill_gradient2(low = "#80435e", mid = "#c7c4b875", high = "#5e8043", 0, limits = giniPasses[, min(zoneDiff) * c(1, -1)],
+  scale_fill_gradient2(low = "#80435e", mid = "#c7c4b865", high = "#5e8043", 0, limits = giniPasses[, min(zoneDiff) * c(1, -1)],
                        name = NULL, breaks = c(-0.08, 0, 0.08)) +
   annotate("rect", xmin = all_pass[GridX == 3 & GridY == 2, min(startMinX)], 
            xmax = all_pass[GridX == 3 & GridY == 2, max(startMaxX)],
@@ -308,7 +308,7 @@ bruyne = ggPitch +
             aes(xmin = (GridX2-1) / 5 * 105, xmax = GridX2 / 5 * 105,
                 ymin = (GridY2-1) / 5 * 65, ymax = GridY2 / 5 * 65,
                 fill = zoneDiff)) +
-  scale_fill_gradient2(low = "#80435e", mid = "#c7c4b875", high = "#5e8043", 0, limits = ozilPasses[, min(zoneDiff) * c(1, -1)],
+  scale_fill_gradient2(low = "#80435e", mid = "#c7c4b865", high = "#5e8043", 0, limits = ozilPasses[, min(zoneDiff) * c(1, -1)],
                        name = NULL, breaks = c(-0.08, 0, 0.08)) +
   annotate("rect", xmin = all_pass[GridX == 4 & GridY == 4, min(startMinX)], 
            xmax = all_pass[GridX == 4 & GridY == 4, max(startMaxX)],
@@ -327,7 +327,7 @@ ozil = ggPitch +
             aes(xmin = (GridX2-1) / 5 * 105, xmax = GridX2 / 5 * 105,
                 ymin = (GridY2-1) / 5 * 65, ymax = GridY2 / 5 * 65,
                 fill = zoneDiff)) +
-  scale_fill_gradient2(low = "#80435e", mid = "#c7c4b875", high = "#5e8043", 0, limits = ozilPasses[, min(zoneDiff) * c(1, -1)],
+  scale_fill_gradient2(low = "#80435e", mid = "#c7c4b865", high = "#5e8043", 0, limits = ozilPasses[, min(zoneDiff) * c(1, -1)],
                        name = NULL, breaks = c(-0.08, 0, 0.08)) +
   annotate("rect", xmin = all_pass[GridX == 4 & GridY == 2, min(startMinX)], 
            xmax = all_pass[GridX == 4 & GridY == 2, max(startMaxX)],
@@ -353,7 +353,7 @@ cesc = ggPitch +
             aes(xmin = (GridX2-1) / 5 * 105, xmax = GridX2 / 5 * 105,
                 ymin = (GridY2-1) / 5 * 65, ymax = GridY2 / 5 * 65,
                 fill = zoneDiff)) +
-  scale_fill_gradient2(low = "#80435e", mid = "#c7c4b875", high = "#5e8043", 0, limits = cescPasses[, min(zoneDiff) * c(1, -1)],
+  scale_fill_gradient2(low = "#80435e", mid = "#c7c4b865", high = "#5e8043", 0, limits = cescPasses[, min(zoneDiff) * c(1, -1)],
                        name = NULL, breaks = c(-0.04, 0, 0.04)) +
   annotate("rect", xmin = all_pass[GridX == 3 & GridY == 4, min(startMinX)], 
            xmax = all_pass[GridX == 3 & GridY == 4, max(startMaxX)],
@@ -370,7 +370,7 @@ xhaka = ggPitch +
             aes(xmin = (GridX2-1) / 5 * 105, xmax = GridX2 / 5 * 105,
                 ymin = (GridY2-1) / 5 * 65, ymax = GridY2 / 5 * 65,
                 fill = zoneDiff)) +
-  scale_fill_gradient2(low = "#80435e", mid = "#c7c4b875", high = "#5e8043", 0, limits = cescPasses[, min(zoneDiff) * c(1, -1)],
+  scale_fill_gradient2(low = "#80435e", mid = "#c7c4b865", high = "#5e8043", 0, limits = cescPasses[, min(zoneDiff) * c(1, -1)],
                        name = NULL, breaks = c(-0.04, 0, 0.04)) +
   annotate("rect", xmin = all_pass[GridX == 3 & GridY == 2, min(startMinX)], 
            xmax = all_pass[GridX == 3 & GridY == 2, max(startMaxX)],
@@ -452,7 +452,7 @@ ggplot(player_xG, aes(x = xG_shot, y = G_shot, color = currentTeamId == 1612)) +
 
 Not including passes from corners or free kicks.
 
-Only looked at last action by team before shot
+Only looked at last action by team before shot  
 Definition of assist probably not so simple (duels/dribbles etc. can occur before shot and passing player still get assist)
 
 
@@ -517,7 +517,8 @@ Would like to make some of the values per 90, i.e. get number of minutes played 
 
 
 
-Add radars
+Add radars  
+
 Improve assist to shot pre-processing
 
 
