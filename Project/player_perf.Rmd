@@ -14,15 +14,6 @@ library(jsonlite)
 library(data.table)
 library(ggplot2)
 library(viridis)
-library(ggrepel)
-```
-
-
-```{r}
-library(jsonlite)
-library(data.table)
-library(ggplot2)
-library(viridis)
 library(grid)
 library(gridExtra)
 library(ggrepel)
@@ -83,14 +74,14 @@ Pass impact: Impact of pass on probability to create a goal scoring opportunity
 The value of a pass is calculated by looking at the location of passes to shots.
 
 ```{r, fig.height=2.25, fig.width=6}
-load("shotActionPass2.rda")
+load("files/shotActionPass2.rda")
 
 ggPitch + 
   geom_rect(data = shotActionPass2,
             aes(xmin = startMinX, xmax = startMaxX,
                 ymin = startMinY, ymax = startMaxY,
                 fill = Prob)) +
-  scale_fill_viridis(alpha = 0.75, breaks = c(0, 0.025, 0.05), limits = c(0, 0.05)) +
+  scale_fill_viridis(alpha = 0.75, breaks = c(0, 0.125, 0.25), limits = c(0, 0.25)) +
   labs(title = "Location of passes to shots") + 
   theme(legend.position = "bottom")  +
   guides(fill = guide_colourbar(barwidth = 8, barheight = 0.25, ticks = FALSE,
@@ -100,7 +91,7 @@ ggPitch +
 The expected value of a pass from a zone is calculated by looking at the probability for each zone given the location - times the value of the respective zone. 
 
 ```{r, fig.height=2.25, fig.width=6}
-load("all_pass.rda")
+load("files/all_pass.rda")
 # Footed passes
 zoneX = 3
 zoneY = 2
@@ -120,7 +111,7 @@ ggPitch +
   guides(fill = guide_colourbar(barwidth = 8, barheight = 0.25, ticks = FALSE,
                                 frame.colour = "black", direction = "horizontal")) 
 
-load("footLoc.rda")
+load("files/footLoc.rda")
 ```
 
 So, the expected value of a pass from the red zone is `r footLoc[GridX == zoneX & GridY == zoneY, round(xPassVal, 3)]`  
@@ -130,7 +121,7 @@ Hence, that pass would be `r shotActionPass2[GridX == (zoneX+1) & GridY == zoneY
 Next plot, using my pass probability model to get the average probability of making a pass from one zone to all other zones. The method I have used for predicting the outcome of a pass utilizes three pieces of information from every pass. The location of the pass, the end location of the pass and the type of pass. From the first two pieces of information, it is possible to extract a lot of data about a pass. In my method, I use the location of a pass, the length of the pass and the distance from the center of the pitch before and after the pass together with the angle toward the goal and the angle toward the midpoint of the goal line. The last piece of information, pass type, consists of four categories, foot passes, head passes, hand passes and crosses. These features are used together to predict if a pass will be accurate or not.
 
 ```{r, fig.height=2.25, fig.width=6}
-load("passProbZone.rda")
+load("files/passProbZone.rda")
 
 zoneX = 3
 zoneY = 2
@@ -155,20 +146,20 @@ So, each pass now has an expected
 - Value, defined as the probability that the pass will lead to pass that assists a shot  
 -  Probability of being accurate
 
-The vertical pass mentioned above had an expected value if `r shotActionPass2[GridX == (zoneX+1) & GridY == zoneY, round(Prob, 3)] - footLoc[GridX == zoneX & GridY == zoneY, round(xPassVal, 3)]` above average. The expected pass probability for that pass is `r passProbZone[GridX == zoneX & GridY == zoneY & GridX2 == (zoneX+1) & GridY2 == zoneY, round(passProb, 3)]`.  
+The vertical pass mentioned above had an expected value of `r shotActionPass2[GridX == (zoneX+1) & GridY == zoneY, round(Prob, 3)] - footLoc[GridX == zoneX & GridY == zoneY, round(xPassVal, 3)]` above average. The expected pass probability for that pass is `r passProbZone[GridX == zoneX & GridY == zoneY & GridX2 == (zoneX+1) & GridY2 == zoneY, round(passProb, 3)]`.  
 Taking the pass value times the pass probability gives that the estimated impact of the pass is `r round((shotActionPass2[GridX == (zoneX+1) & GridY == zoneY, Prob] - footLoc[GridX == zoneX & GridY == zoneY, xPassVal]) * passProbZone[GridX == zoneX & GridY == zoneY & GridX2 == (zoneX+1) & GridY2 == zoneY, passProb], 3) * 100` %. 
 
 
 Uses the above calculations to calculate the total and average impact for each player, and comparing that against the expected impact. The plot below shows the difference of expected and actual impact against total impact.
 
 ```{r, fig.height=2.5, fig.width=6}
-load("playerImpact.rda")
+load("files/playerImpact.rda")
 
 ggplot(playerImpact, aes(x = impactDiff, y = aImpact, color = currentTeamId == 1612)) +
   geom_point(size = 1) +
   geom_text_repel(data = playerImpact[aImpact > quantile(aImpact, 0.95) |
                                       abs(impactDiff) > quantile(abs(impactDiff), 0.975)],
-                  aes(label = lastName), size = 2, color = "grey78") +
+                  aes(label = shortName), size = 2, color = "grey78") +
   scale_color_manual(values = c("grey58", "#C8102E"), name = NULL, labels = c("", "Liverpool\nplayers")) +
   theme(panel.background = element_rect(fill = "grey30"), panel.grid = element_line(color = "grey38"),
         plot.title = element_text(size = 10, margin = margin(b = 0.25)),
@@ -185,7 +176,7 @@ The plot below shows the mean difference of expected and actual impact against m
 ggplot(playerImpact, aes(x = impactDiffAvg, y = aImpactAvg, color = currentTeamId == 1612)) + geom_point(size = 1) +
   geom_text_repel(data = playerImpact[aImpactAvg > quantile(aImpactAvg, 0.95) |
                                         abs(impactDiffAvg) > quantile(abs(impactDiffAvg), 0.975)],
-                  aes(label = lastName), size = 2, color = "grey78") +
+                  aes(label = shortName), size = 2, color = "grey78") +
   scale_color_manual(values = c("grey58", "#C8102E"), name = NULL, labels = c("", "Liverpool\nplayers")) +
   theme(panel.background = element_rect(fill = "grey30"), panel.grid = element_line(color = "grey38"),
         plot.title = element_text(size = 10, margin = margin(b = 0.25)),
@@ -199,23 +190,25 @@ ggplot(playerImpact, aes(x = impactDiffAvg, y = aImpactAvg, color = currentTeamI
 The tables shows the top 10 for total pass impact and mean pass impact, respectively. 
 
 ```{r, results='asis'}
-print(xtable(playerImpact[aImpactRank <= 10, .(Name = paste(firstName, lastName), Impact = aImpact, Passes = N)][order(-Impact)], caption = 'Sum of expected pass impact - top 10'), caption.placement = 'bottom', comment = FALSE, include.rownames=FALSE, digits = 1)
+print(xtable(playerImpact[aImpactRank <= 10, .(Name = shortName, Impact = aImpact, Passes = N)][order(-Impact)], caption = 'Total pass impact - top 10'), caption.placement = 'bottom', comment = FALSE, include.rownames=FALSE, digits = 1)
 ```
 
 ```{r, results='asis'}
-print(xtable(playerImpact[aImpactAvgRank <= 10, .(Name = paste(firstName, lastName), Impact = paste(round(aImpactAvg * 100, 2), "%"), Passes = N)][order(-Impact)], caption = 'Mean expected pass impact - top 10'), caption.placement = 'bottom', comment = FALSE, include.rownames=FALSE, digits = 3)
+print(xtable(playerImpact[aImpactAvgRank <= 10, .(Name = shortName, Impact = paste(round(aImpactAvg * 100, 2), "%"), Passes = N)][order(-Impact)], caption = 'Mean pass impact - top 10'), caption.placement = 'bottom', comment = FALSE, include.rownames=FALSE, digits = 3)
 ```
 
-Continue with a brief analysis of the players in Liverpool.  
-Mohamed Salah is Liverpool's number one for mean pass impact and fourth in the league.  
-Jordan Henderson is Liverpool's number one for total pass impact and 17th in league.
+Continue with a brief analysis of the players in Liverpool. 
+Roberto Firmino is Liverpool's number one for total pass impact and 16th in the league.
+Mohamed Salah is Liverpool's number one for mean pass impact and fifth in the league.  
+James Milner is the highest ranked Liverpool player (16th overall) when it comes to average difference between actual and expected pass impact.  
 
-Looks at the zone from which they have the highest number of passes and compares the distribution to the average distribution. 
+Continue with an analysis of the zone from which they have the highest number of passes and compares the distribution to the average distribution. 
 
-```{r, fig.height=2.25, fig.width=6}
-load("salahPasses.rda")
+```{r, fig.height=2.25, fig.width=7}
+load("files/salahPasses.rda")
+load("files/bobbyPasses.rda")
 
-ggPitch + 
+salah = ggPitch + 
   geom_rect(data = salahPasses,
             aes(xmin = (GridX2-1) / 5 * 105, xmax = GridX2 / 5 * 105,
                 ymin = (GridY2-1) / 5 * 65, ymax = GridY2 / 5 * 65,
@@ -231,66 +224,174 @@ ggPitch +
        subtitle = "Mohamed Salah - Compared to average location of passes from same zone")+
   theme(legend.position = "bottom")  +
   guides(fill = guide_colourbar(barwidth = 8, barheight = 0.25, ticks = FALSE,
-                                frame.colour = "black", direction = "horizontal")) 
-```
+                                frame.colour = "black", direction = "horizontal")) +
+  coord_cartesian(xlim = c(40, 107))
 
-```{r, fig.height=2.25, fig.width=6}
-load("hendoPasses.rda")
-
-ggPitch + 
-  geom_rect(data = hendoPasses,
+bobby = ggPitch + 
+  geom_rect(data = bobbyPasses,
             aes(xmin = (GridX2-1) / 5 * 105, xmax = GridX2 / 5 * 105,
                 ymin = (GridY2-1) / 5 * 65, ymax = GridY2 / 5 * 65,
                 fill = zoneDiff)) +
-  scale_fill_gradient2(low = "#80435e", mid = "#c7c4b875", high = "#5e8043", 0, limits = hendoPasses[, max(abs(zoneDiff)) * c(-1, 1)],
-                       name = NULL, breaks = c(-0.06, 0, 0.06)) +
+  scale_fill_gradient2(low = "#80435e", mid = "#c7c4b875", high = "#5e8043", 0, limits = salahPasses[, min(zoneDiff) * c(1, -1)],
+                       name = NULL, breaks = c(-0.1, 0, 0.1)) +
+  annotate("rect", xmin = all_pass[GridX == 4 & GridY == 4, min(startMinX)], 
+           xmax = all_pass[GridX == 4 & GridY == 4, max(startMaxX)],
+           ymin = all_pass[GridX == 4 & GridY == 4, min(startMinY)],
+           ymax = all_pass[GridX == 4 & GridY == 4, max(startMaxY)],
+           fill = "transparent", color = "red", size = 1) +
+  labs(title = "Location of footed passes from red zone", 
+       subtitle = "Roberto Firmino - Compared to average location of passes from same zone")+
+  theme(legend.position = "bottom")  +
+  guides(fill = guide_colourbar(barwidth = 8, barheight = 0.25, ticks = FALSE,
+                                frame.colour = "black", direction = "horizontal")) +
+  coord_cartesian(xlim = c(40, 107))
+
+grid.arrange(salah, bobby, ncol = 2)
+```
+
+```{r, fig.height=2.25, fig.width=7}
+load("files/giniPasses.rda")
+load("files/milnerPasses.rda")
+
+gini = ggPitch + 
+  geom_rect(data = giniPasses,
+            aes(xmin = (GridX2-1) / 5 * 105, xmax = GridX2 / 5 * 105,
+                ymin = (GridY2-1) / 5 * 65, ymax = GridY2 / 5 * 65,
+                fill = zoneDiff)) +
+  scale_fill_gradient2(low = "#80435e", mid = "#c7c4b875", high = "#5e8043", 0, limits = giniPasses[, min(zoneDiff) * c(1, -1)],
+                       name = NULL, breaks = c(-0.08, 0, 0.08)) +
+  annotate("rect", xmin = all_pass[GridX ==3 & GridY == 2, min(startMinX)], 
+           xmax = all_pass[GridX == 3 & GridY == 2, max(startMaxX)],
+           ymin = all_pass[GridX == 3 & GridY == 2, min(startMinY)],
+           ymax = all_pass[GridX == 3 & GridY == 2, max(startMaxY)],
+           fill = "transparent", color = "red", size = 1) +
+  labs(title = "Location of footed passes from red zone", 
+       subtitle = "Gini Wijnaldum - Compared to average location of passes from same zone")+
+  theme(legend.position = "bottom")  +
+  guides(fill = guide_colourbar(barwidth = 8, barheight = 0.25, ticks = FALSE,
+                                frame.colour = "black", direction = "horizontal")) 
+milner = ggPitch + 
+  geom_rect(data = milnerPasses,
+            aes(xmin = (GridX2-1) / 5 * 105, xmax = GridX2 / 5 * 105,
+                ymin = (GridY2-1) / 5 * 65, ymax = GridY2 / 5 * 65,
+                fill = zoneDiff)) +
+  scale_fill_gradient2(low = "#80435e", mid = "#c7c4b875", high = "#5e8043", 0, limits = giniPasses[, min(zoneDiff) * c(1, -1)],
+                       name = NULL, breaks = c(-0.08, 0, 0.08)) +
+  annotate("rect", xmin = all_pass[GridX == 3 & GridY == 2, min(startMinX)], 
+           xmax = all_pass[GridX == 3 & GridY == 2, max(startMaxX)],
+           ymin = all_pass[GridX == 3 & GridY == 2, min(startMinY)],
+           ymax = all_pass[GridX == 3 & GridY == 2, max(startMaxY)],
+           fill = "transparent", color = "red", size = 1) +
+  labs(title = "Location of footed passes from red zone", 
+       subtitle = "James Milner - Compared to average location of passes from same zone")+
+  theme(legend.position = "bottom")  +
+  guides(fill = guide_colourbar(barwidth = 8, barheight = 0.25, ticks = FALSE,
+                                frame.colour = "black", direction = "horizontal")) 
+
+grid.arrange(milner, gini, ncol = 2)
+```
+
+Salah and Firmino are good - mainly keeps the ball in valuable zones, but only progress it a bit more than average
+Milner's passes forward are either out to the left flank or long balls on the opposite side.
+Wijnaldum's passaes are, compared to the average player, too a large extent played sideways or backward. 
+Might think that Liverpool could use some more creativity from midfield
+
+Adding Kevin de Bruyne and Özil to compare against Firmino and Salah.  
+Adding Cesc Fabregas and Xhaka to compare against Milner and Wijnaldum. 
+
+```{r, fig.height=2.25, fig.width=7}
+load("files/ozilPasses.rda")
+load("files/bruynePasses.rda")
+
+bruyne = ggPitch + 
+  geom_rect(data = bruynePasses,
+            aes(xmin = (GridX2-1) / 5 * 105, xmax = GridX2 / 5 * 105,
+                ymin = (GridY2-1) / 5 * 65, ymax = GridY2 / 5 * 65,
+                fill = zoneDiff)) +
+  scale_fill_gradient2(low = "#80435e", mid = "#c7c4b875", high = "#5e8043", 0, limits = ozilPasses[, min(zoneDiff) * c(1, -1)],
+                       name = NULL, breaks = c(-0.08, 0, 0.08)) +
+  annotate("rect", xmin = all_pass[GridX == 4 & GridY == 4, min(startMinX)], 
+           xmax = all_pass[GridX == 4 & GridY == 4, max(startMaxX)],
+           ymin = all_pass[GridX == 4 & GridY == 4, min(startMinY)],
+           ymax = all_pass[GridX == 4 & GridY == 4, max(startMaxY)],
+           fill = "transparent", color = "red", size = 1) +
+  labs(title = "Location of footed passes from red zone", 
+       subtitle = "Kevin de Bruyne - Compared to average location of passes from same zone")+
+  theme(legend.position = "bottom")  +
+  guides(fill = guide_colourbar(barwidth = 8, barheight = 0.25, ticks = FALSE,
+                                frame.colour = "black", direction = "horizontal")) +
+  coord_cartesian(xlim = c(40, 107))
+
+ozil = ggPitch + 
+  geom_rect(data = ozilPasses,
+            aes(xmin = (GridX2-1) / 5 * 105, xmax = GridX2 / 5 * 105,
+                ymin = (GridY2-1) / 5 * 65, ymax = GridY2 / 5 * 65,
+                fill = zoneDiff)) +
+  scale_fill_gradient2(low = "#80435e", mid = "#c7c4b875", high = "#5e8043", 0, limits = ozilPasses[, min(zoneDiff) * c(1, -1)],
+                       name = NULL, breaks = c(-0.08, 0, 0.08)) +
+  annotate("rect", xmin = all_pass[GridX == 4 & GridY == 2, min(startMinX)], 
+           xmax = all_pass[GridX == 4 & GridY == 2, max(startMaxX)],
+           ymin = all_pass[GridX == 4 & GridY == 2, min(startMinY)],
+           ymax = all_pass[GridX == 4 & GridY == 2, max(startMaxY)],
+           fill = "transparent", color = "red", size = 1) +
+  labs(title = "Location of footed passes from red zone", 
+       subtitle = "Mezut Özil - Compared to average location of passes from same zone")+
+  theme(legend.position = "bottom")  +
+  guides(fill = guide_colourbar(barwidth = 8, barheight = 0.25, ticks = FALSE,
+                                frame.colour = "black", direction = "horizontal")) +
+  coord_cartesian(xlim = c(40, 107))
+
+grid.arrange(bruyne, ozil, ncol = 2)
+```
+
+```{r, fig.height=2.25, fig.width=7}
+load("files/cescPasses.rda")
+load("files/xhakaPasses.rda")
+
+cesc = ggPitch + 
+  geom_rect(data = cescPasses,
+            aes(xmin = (GridX2-1) / 5 * 105, xmax = GridX2 / 5 * 105,
+                ymin = (GridY2-1) / 5 * 65, ymax = GridY2 / 5 * 65,
+                fill = zoneDiff)) +
+  scale_fill_gradient2(low = "#80435e", mid = "#c7c4b875", high = "#5e8043", 0, limits = cescPasses[, min(zoneDiff) * c(1, -1)],
+                       name = NULL, breaks = c(-0.04, 0, 0.04)) +
   annotate("rect", xmin = all_pass[GridX == 3 & GridY == 4, min(startMinX)], 
            xmax = all_pass[GridX == 3 & GridY == 4, max(startMaxX)],
            ymin = all_pass[GridX == 3 & GridY == 4, min(startMinY)],
            ymax = all_pass[GridX == 3 & GridY == 4, max(startMaxY)],
            fill = "transparent", color = "red", size = 1) +
   labs(title = "Location of footed passes from red zone", 
-       subtitle = "Jordan Henderson - Compared to average location of passes from same zone")+
-  theme(legend.position = "bottom") +
+       subtitle = "Cesc Fabregas - Compared to average location of passes from same zone")+
+  theme(legend.position = "bottom")  +
   guides(fill = guide_colourbar(barwidth = 8, barheight = 0.25, ticks = FALSE,
                                 frame.colour = "black", direction = "horizontal")) 
-```
-
-
-Salah is good - keeps the ball in valuable zones  
-Henderson often plays the ball out the right or to the left centre back, compared to the average distribution n that zone.  
-Might think that Liverpool could use some more creativity from midfield
-
-Adding Granit Xhaka as comparison to Henderson. Plays the ball forward more than average and to valuable zones. 
-
-```{r, fig.height=2.25, fig.width=6}
-load("xhakaPasses.rda")
-
-ggPitch + 
+xhaka = ggPitch + 
   geom_rect(data = xhakaPasses,
             aes(xmin = (GridX2-1) / 5 * 105, xmax = GridX2 / 5 * 105,
                 ymin = (GridY2-1) / 5 * 65, ymax = GridY2 / 5 * 65,
                 fill = zoneDiff)) +
-  scale_fill_gradient2(low = "#80435e", mid = "#c7c4b875", high = "#5e8043", 0,
-                       limits = xhakaPasses[, max(abs(zoneDiff)) * c(-1, 1)],
+  scale_fill_gradient2(low = "#80435e", mid = "#c7c4b875", high = "#5e8043", 0, limits = cescPasses[, min(zoneDiff) * c(1, -1)],
                        name = NULL, breaks = c(-0.04, 0, 0.04)) +
-  annotate("rect", xmin = all_pass[GridX == 3 & GridY == 3, min(startMinX)], 
-           xmax = all_pass[GridX == 3 & GridY == 3, max(startMaxX)],
-           ymin = all_pass[GridX == 3 & GridY == 3, min(startMinY)],
-           ymax = all_pass[GridX == 3 & GridY == 3, max(startMaxY)],
+  annotate("rect", xmin = all_pass[GridX == 3 & GridY == 2, min(startMinX)], 
+           xmax = all_pass[GridX == 3 & GridY == 2, max(startMaxX)],
+           ymin = all_pass[GridX == 3 & GridY == 2, min(startMinY)],
+           ymax = all_pass[GridX == 3 & GridY == 2, max(startMaxY)],
            fill = "transparent", color = "red", size = 1) +
   labs(title = "Location of footed passes from red zone", 
        subtitle = "Granit Xhaka - Compared to average location of passes from same zone")+
-  theme(legend.position = "bottom") +
+  theme(legend.position = "bottom")  +
   guides(fill = guide_colourbar(barwidth = 8, barheight = 0.25, ticks = FALSE,
                                 frame.colour = "black", direction = "horizontal")) 
+
+grid.arrange(cesc, xhaka, ncol = 2)
 ```
+
 
 
 # Expected goals
 
 ```{r, fig.height=2.25, fig.width=6}
-load("xG_testData.rda")
+load("files/xG_testData.rda")
 
 ggPitch + 
   geom_point(data = testData, aes(x = x1, y = y1, color = xG), size = 2) +
@@ -302,9 +403,11 @@ ggPitch +
 ```
 
 
+Not including free kicks or penalties.
+
 
 ```{r, fig.height=2.5, fig.width=6}
-load("player_xG.rda")
+load("files/player_xG.rda")
 
 ggplot(player_xG, aes(x = xG, y = G, color = currentTeamId == 1612)) +
   geom_smooth(se = FALSE, method = "lm", formula = y ~ x, aes(group = 1), color = "grey62") + 
@@ -324,8 +427,6 @@ ggplot(player_xG, aes(x = xG, y = G, color = currentTeamId == 1612)) +
 
 
 ```{r, fig.height=2.5, fig.width=6}
-load("player_xG.rda")
-
 ggplot(player_xG, aes(x = xG_shot, y = G_shot, color = currentTeamId == 1612)) +
   geom_smooth(se = FALSE, method = "lm", formula = y ~ x, aes(group = 1), color = "grey62") + 
   geom_point() +
@@ -349,8 +450,14 @@ ggplot(player_xG, aes(x = xG_shot, y = G_shot, color = currentTeamId == 1612)) +
 
 # Expected assists
 
+Not including passes from corners or free kicks.
+
+Only looked at last action by team before shot
+Definition of assist probably not so simple (duels/dribbles etc. can occur before shot and passing player still get assist)
+
+
 ```{r, fig.height=2.5, fig.width=6}
-load("player_xA.rda")
+load("files/player_xA.rda")
 
 ggplot(player_xA, aes(x = xA, y = A, color = currentTeamId == 1612)) +
   geom_smooth(se = FALSE, method = "lm", formula = y ~ x, aes(group = 1), color = "grey62") + 
@@ -391,6 +498,9 @@ ggplot(player_xA, aes(x = xA_pass, y = A_pass, color = currentTeamId == 1612)) +
 ```
 
 
+Add table?
+Which Liverpool players have the highest ranking?
+
 Creativity from the front three - Mané, Firmino and Salah  
 Mentioned earlier that Liverpool's midfield might lack a bit of creativity  
 Seem like creativity is a less important piece of contribution for a midfielder in Liverpool compared to the average team
@@ -403,14 +513,12 @@ Seem like creativity is a less important piece of contribution for a midfielder 
 # To do
 
 
-Do a short report with Radars, using passing model and xG model
-
 Would like to make some of the values per 90, i.e. get number of minutes played for each player and divide the value by the number of 90s played. For example, xG per 90 instead of total xG and shots per 90 instead of total number of shots
 
 
-Clean up code a bit
+
 Add radars
-Upload to Github
+Improve assist to shot pre-processing
 
 
 
