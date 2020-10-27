@@ -408,6 +408,7 @@ Not including free kicks or penalties.
 
 ```{r, fig.height=2.5, fig.width=6}
 load("files/player_xG.rda")
+player_xG = player_xG[shots > 30]
 
 ggplot(player_xG, aes(x = xG, y = G, color = currentTeamId == 1612)) +
   geom_smooth(se = FALSE, method = "lm", formula = y ~ x, aes(group = 1), color = "grey62") + 
@@ -458,6 +459,7 @@ Definition of assist probably not so simple (duels/dribbles etc. can occur befor
 
 ```{r, fig.height=2.5, fig.width=6}
 load("files/player_xA.rda")
+player_xA = player_xA[passes > 20]
 
 ggplot(player_xA, aes(x = xA, y = A, color = currentTeamId == 1612)) +
   geom_smooth(se = FALSE, method = "lm", formula = y ~ x, aes(group = 1), color = "grey62") + 
@@ -507,17 +509,112 @@ Seem like creativity is a less important piece of contribution for a midfielder 
 
 
 # Radars
+```{r}
+load("files/radarData.rda")
+
+# Make a radar plot
+circle1 <- circleFun(c(0,0),200,npoints = 100)
+circle2 <- circleFun(c(0,0),150,npoints = 100)
+circle3 <- circleFun(c(0,0),100,npoints = 100)
+circle4 <- circleFun(c(0,0),50,npoints = 100)
+
+angle_spilt <- (2*pi) / (5)
+angle_spilt_seq <- seq(0,(2*pi),angle_spilt)
+
+TitlePositioning <- data.frame(title = character(), x = numeric(), y = numeric(), stringsAsFactors = F)
+## create plot background construction data  
+k = 1
+for (i in 4:8) {
+  k = k+1
+  radians_for_segment <- angle_spilt_seq[k]
+  
+  x <- 117 * cos(radians_for_segment)
+  y <- 117 * sin(radians_for_segment)
+  title <- colnames(radarData)[i]
+  temp <- data.frame(title = title, x = x, y = y, stringsAsFactors = F)
+  TitlePositioning <- rbind(temp, TitlePositioning)
+}
+
+polydata <- data.frame(Player = character(), value = numeric(), radians = numeric(),
+                       x = numeric(), y = numeric(), stringsAsFactors = F)
+
+## create polygon data for the players 
+k = 1
+for (i in 4:8) {
+  k = k+1
+  for (p in 1:nrow(radarData)) {
+    site2calc <- as.numeric(radarData[p, i, with = FALSE])
+    angle_multiplier <- if(i < ncol(radarData)){i}else{1}
+    radians_for_segment <- angle_spilt_seq[k]
+    x <- site2calc * cos(radians_for_segment)
+    y <- site2calc * sin(radians_for_segment)
+    Player <- radarData$shortName[p]
+    temp <- data.frame(Player = Player, value = site2calc, radians = radians_for_segment, x = x, y = y, stringsAsFactors = F)
+    polydata <- rbind(temp, polydata)
+  }
+}
+
+polydata = data.table(polydata)
+
+RadarFunc = function(P, C){
+  p = ggplot() + xlim(c(-120, 120)) + ylim(c(-120, 150)) +
+    geom_polygon(data = circle1, aes(x=x,y=y),fill = "#F0F0F0", colour = "#969696") + 
+    geom_polygon(data = circle2, aes(x=x,y=y),fill = "#FFFFFF", colour = "#d9d9d9") + 
+    geom_polygon(data = circle3, aes(x=x,y=y),fill = "#F0F0F0", colour = "#d9d9d9") + 
+    geom_polygon(data = circle4, aes(x=x,y=y),fill = "#FFFFFF", colour = "#d9d9d9") + 
+    labs(x = NULL, y = NULL, title = polydata[Player == P, unique(Player)]) +
+    theme(panel.grid.major.x = element_line(color = "transparent"), axis.text=element_blank(),
+          plot.title = element_text(hjust=0.5)) +
+    annotate("text", x = TitlePositioning$x , y = TitlePositioning$y, label = TitlePositioning$title, size= 3.5) +
+    geom_polygon(data = polydata[Player == P], aes(x = x, y = y, fill = Player, color = Player), fill = C, col = C, size = 1)
+  return(p)
+}
+```
 
 
+```{r, fig.width=6, fig.height=4.5}
+radarData[, totRank := sum(xG90_perc, xG_shot_perc, shots90_perc, xA90_perc, aImpact90_perc), playerId]
 
-# To do
+buildUpTop = radarData[order(-aImpact90_perc), shortName][1:5]
+xGtop = radarData[order(-xG90_perc), shortName][1:5]
+xAtop = radarData[order(-xA90_perc), shortName][1:5]
+lpool = radarData[currentTeamId == 1612][order(-totRank), shortName]
+
+playerRadarPassIp = list()
+playerRadarxG = list()
+playerRadarxA = list()
+playerRadarlpool = list()
+
+k = 0
+for(i in 1:5){
+  k = k+1
+  playerRadarPassIp[[k]] = RadarFunc(P = buildUpTop[i], C = viridis(n = max(c(5, k)), end = 0.9, alpha = 0.5, option = "B")[k])
+  playerRadarxG[[k]] = RadarFunc(P = xGtop[i], C = viridis(n = max(c(5, k)), end = 0.9, alpha = 0.5, option = "B")[k])
+  playerRadarxA[[k]] = RadarFunc(P = xAtop[i], C = viridis(n = max(c(5, k)), end = 0.9, alpha = 0.5, option = "B")[k])
+}
+
+grid.arrange(grobs = playerRadarPassIp, ncol = 3,
+             top=textGrob("Top 5 - Pass impact", gp = gpar(fontsize = 14), hjust=0.75) )
+```
+
+```{r, fig.width=6, fig.height=9}
+
+k = 0
+for(i in 1:10){
+  k = k+1
+  playerRadarlpool[[k]] = RadarFunc(P = lpool[i], C = "#C8102E70")
+  }
+
+grid.arrange(grobs = playerRadarlpool, ncol = 3,
+             top=textGrob("Liverpool players (top 10)", gp = gpar(fontsize = 14), hjust=0.75) )
+
+```
 
 
-Would like to make some of the values per 90, i.e. get number of minutes played for each player and divide the value by the number of 90s played. For example, xG per 90 instead of total xG and shots per 90 instead of total number of shots
+# To do / comments
 
 
-
-Add radars  
+Make an additional pass impact / build-up value that is involvement up to 10 seconds before a shot?
 
 Improve assist to shot pre-processing
 

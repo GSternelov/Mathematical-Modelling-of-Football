@@ -78,19 +78,19 @@ player_xG = player_xG[, .(xG = sum(xG), G = sum(outcome), xGdiff = sum(outcome) 
                           shots = .N, xG_shot = sum(xG) / .N, G_shot = sum(outcome) / .N),
                       .(playerId, shortName, currentTeamId)]
 
-player_xG = player_xG[shots > 30]
+player_xG2 = player_xG[shots > 30]
 
-ggplot(player_xG, aes(x = xG, y = G, color = currentTeamId == 1612)) +
+ggplot(player_xG2, aes(x = xG, y = G, color = currentTeamId == 1612)) +
   geom_smooth(se = FALSE, method = "lm", formula = y ~ x, aes(group = 1), color = "grey62") + 
   geom_point() +
-  geom_text_repel(data = player_xG[abs(xGdiff) > quantile(abs(xGdiff), 0.9) | G > quantile(G, 0.95)], 
+  geom_text_repel(data = player_xG2[abs(xGdiff) > quantile(abs(xGdiff), 0.9) | G > quantile(G, 0.95)], 
                   aes(label = shortName), size = 3, color = "grey78") +
   scale_color_manual(values = c("grey58", "#C8102E"), name = NULL, labels = c("", "Liverpool\nplayers")) 
 
-ggplot(player_xG, aes(x = xG_shot, y = G_shot, color = currentTeamId == 1612)) +
+ggplot(player_xG2, aes(x = xG_shot, y = G_shot, color = currentTeamId == 1612)) +
   geom_smooth(se = FALSE, method = "lm", formula = y ~ x, aes(group = 1)) + 
   geom_point() +
-  geom_text_repel(data = player_xG[xG_shot > quantile(xG_shot, 0.95) |
+  geom_text_repel(data = player_xG2[xG_shot > quantile(xG_shot, 0.95) |
                                      xG_shot < quantile(xG_shot, 0.05) | 
                                      G_shot > quantile(G_shot, 0.95) |
                                      G_shot < quantile(G_shot, 0.1)], 
@@ -124,33 +124,28 @@ player_xA = player_xA[, .(xA = sum(xG), A = sum(outcome), xAdiff = sum(outcome) 
                           passes = .N, xA_pass = sum(xG) / .N, A_pass = sum(outcome) / .N),
                       .(playerId, shortName, currentTeamId)]
 
-player_xA = player_xA[passes > 20]
+player_xA2 = player_xA[passes > 20]
 
 
-ggplot(player_xA, aes(x = xA, y = A, color = currentTeamId == 1612)) +
+ggplot(player_xA2, aes(x = xA, y = A, color = currentTeamId == 1612)) +
   geom_smooth(se = FALSE, method = "lm", formula = y ~ x, aes(group = 1), color = "grey62") + 
   geom_point() +
-  geom_text_repel(data = player_xA[abs(xA) > quantile(abs(xA), 0.9) | A > quantile(A, 0.95)], 
+  geom_text_repel(data = player_xA2[abs(xA) > quantile(abs(xA), 0.9) | A > quantile(A, 0.95)], 
                   aes(label = shortName), size = 3, color = "grey78") +
   scale_color_manual(values = c("grey58", "#C8102E"), name = NULL, labels = c("", "Liverpool\nplayers")) 
 
-ggplot(player_xA, aes(x = xA_pass, y = A_pass, color = currentTeamId == 1612)) +
+ggplot(player_xA2, aes(x = xA_pass, y = A_pass, color = currentTeamId == 1612)) +
   geom_smooth(se = FALSE, method = "lm", formula = y ~ x, aes(group = 1)) + 
   geom_point() +
-  geom_text_repel(data = player_xA[xA_pass > quantile(xA_pass, 0.95) |
+  geom_text_repel(data = player_xA2[xA_pass > quantile(xA_pass, 0.95) |
                                      xA_pass < quantile(xA_pass, 0.05) | 
                                      A_pass > quantile(A_pass, 0.95) |
                                      A_pass < quantile(A_pass, 0.1)], 
                   aes(label = shortName), size = 3)
 
-# Check again, quite different to previous results
-
-# Looks like really low numbers compared to fbref
-
-# xG also a bit low?
 
   # Do not use passes from corners or free kicks
-  # Not shots from free kicks or penalties
+  # No shots from free kicks or penalties
 
 # Files for markdown report 
 
